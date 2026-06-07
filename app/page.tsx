@@ -16,6 +16,15 @@ export default function Home() {
   const [tab, setTab] = useState('palpites')
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+useEffect(() => {
+    const { searchParams } = new URL(window.location.href)
+    const code = searchParams.get('code')
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(() => {
+        window.history.replaceState({}, '', '/')
+      })
+    }
+  }, [])
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
