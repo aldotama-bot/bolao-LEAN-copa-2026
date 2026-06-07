@@ -43,7 +43,7 @@ export default function Stats({ userId, apelido }: { userId: string; apelido: st
       .select('*').eq('user_id', userId).in('match_id', ids)
     const predMap: Record<number, any> = {}
     myPreds?.forEach((p: any) => { predMap[p.match_id] = p })
-    setHistory((done || []).map(m => ({ ...m, pred: predMap[m.id] })))
+    setHistory((done || []).map((m: any) => ({ ...m, pred: predMap[m.id] }))) 
   }
 
   function ptsBg(pts: number) {
