@@ -155,6 +155,7 @@ export default function Palpites({ userId }: { userId: string }) {
                       <input
                         type="number" min="0" max="20" placeholder="0" inputMode="numeric"
                         value={pred.h}
+                        onFocus={e => e.target.select()}
                         onChange={e => setPreds(prev => ({ ...prev, [m.id]: { ...pred, h: e.target.value } }))}
                         className="w-14 h-10 text-center text-lg font-medium border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-copa-green"
                       />
@@ -162,6 +163,7 @@ export default function Palpites({ userId }: { userId: string }) {
                       <input
                         type="number" min="0" max="20" placeholder="0" inputMode="numeric"
                         value={pred.a}
+                        onFocus={e => e.target.select()} 
                         onChange={e => setPreds(prev => ({ ...prev, [m.id]: { ...pred, a: e.target.value } }))}
                         className="w-14 h-10 text-center text-lg font-medium border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-copa-green"
                       />
