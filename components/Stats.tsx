@@ -17,7 +17,7 @@ export default function Stats({ userId, apelido }: { userId: string; apelido: st
   async function load() {
     const { data: r } = await supabase.from('ranking').select('*').eq('user_id', userId).single()
     const { data: allRanking } = await supabase.from('ranking').select('user_id').order('total_pts', { ascending: false })
-    const pos = (allRanking || []).findIndex(x => x.user_id === userId) + 1
+    const pos = (allRanking || []).findIndex((x: any) => x.user_id === userId) + 1
     setStats({ ...r, pos })
 
     const phaseData = await Promise.all(PHASE_FULL.map(async (ph, i) => {
