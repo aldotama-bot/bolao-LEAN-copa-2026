@@ -15,38 +15,45 @@ export default function Home() {
   const [profile, setProfile] = useState<any>(null)
   const [tab, setTab] = useState('palpites')
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   useEffect(() => {
-    async function init() {
-      // Troca o code da URL por uma sessão válida
-      const url = new URL(window.location.href)
-      const code = url.searchParams.get('code')
-      if (code) {
-        await supabase.auth.exchangeCodeForSession(code)
-        window.history.replaceState({}, '', '/')
-      }
+    const supabase = createClient()
 
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-        setProfile(data)
+    async function init() {
+      try {
+        const url = new URL(window.location.href)
+        const code = url.searchParams.get('code')
+        if (code) {
+          await supabase.auth.exchangeCodeForSession(code)
+          window.history.replaceState({}, '', '/')
+        }
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          setUser(session.user)
+          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          setProfile(data)
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
+
     init()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange( async (_event: any, session: any) => {
-      setUser(session?.user ?? null)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
       if (session?.user) {
+        setUser(session.user)
         const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
         setProfile(data)
       } else {
+        setUser(null)
         setProfile(null)
-        setLoading(false)
       }
+      setLoading(false)
     })
+
     return () => subscription.unsubscribe()
   }, [])
 
@@ -73,6 +80,8 @@ export default function Home() {
     { id: 'stats', label: 'Estatísticas', icon: '📈' },
     ...(profile?.is_admin ? [{ id: 'admin', label: 'Admin', icon: '⚙️' }] : []),
   ]
+
+  const supabase = createClient()
 
   return (
     <div className="max-w-2xl mx-auto px-3 pb-10">
