@@ -16,25 +16,27 @@ export default function Home() {
   const [tab, setTab] = useState('palpites')
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
-useEffect(() => {
-    const { searchParams } = new URL(window.location.href)
-    const code = searchParams.get('code')
-    if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(() => {
-        window.history.replaceState({}, '', '/')
-      })
-    }
-  }, [])
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    async function init() {
+      // Troca o code da URL por uma sessão válida
+      const url = new URL(window.location.href)
+      const code = url.searchParams.get('code')
+      if (code) {
+        await supabase.auth.exchangeCodeForSession(code)
+        window.history.replaceState({}, '', '/')
+      }
+
+      const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       if (user) {
         const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
         setProfile(data)
       }
       setLoading(false)
-    })
+    }
+    init()
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -42,6 +44,7 @@ useEffect(() => {
         setProfile(data)
       } else {
         setProfile(null)
+        setLoading(false)
       }
     })
     return () => subscription.unsubscribe()
@@ -59,7 +62,7 @@ useEffect(() => {
   }
 
   if (!user || !profile) {
-    return <Login onLogin={(p) => setProfile(p)} />
+    return <Login onLogin={(p) => { setProfile(p); setUser(p) }} />
   }
 
   const tabs: { id: string; label: string; icon: string }[] = [
