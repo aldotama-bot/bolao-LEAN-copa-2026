@@ -104,3 +104,4 @@ export default function Stats({ userId, apelido }: { userId: string; apelido: st
     </div>
   )
 }
+
