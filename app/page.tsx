@@ -107,6 +107,6 @@ export default function Home() {
       {tab === 'ranking' && <Ranking currentUserId={user.id} />}
       {tab === 'stats' && <Stats userId={user.id} apelido={profile.apelido} />}
       {tab === 'admin' && profile?.is_admin && <Admin />}
-    </div>
+    </div> 
   )
 }
