@@ -19,30 +19,11 @@ export default function Home() {
   useEffect(() => {
     const supabase = createClient()
 
-    async function init() {
-      try {
-        const url = new URL(window.location.href)
-        const code = url.searchParams.get('code')
-        if (code) {
-          await supabase.auth.exchangeCodeForSession(code)
-          window.history.replaceState({}, '', '/')
-        }
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user) {
-          setUser(session.user)
-          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-          setProfile(data)
-        }
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    init()
+    // Timeout de segurança — nunca fica preso em "carregando"
+    const timeout = setTimeout(() => setLoading(false), 5000)
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
+      clearTimeout(timeout)
       if (session?.user) {
         setUser(session.user)
         const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
@@ -54,7 +35,21 @@ export default function Home() {
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    // Também tenta pegar sessão diretamente
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        clearTimeout(timeout)
+        setUser(session.user)
+        const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+        setProfile(data)
+        setLoading(false)
+      }
+    })
+
+    return () => {
+      clearTimeout(timeout)
+      subscription.unsubscribe()
+    }
   }, [])
 
   if (loading) {
@@ -69,10 +64,10 @@ export default function Home() {
   }
 
   if (!user || !profile) {
-    return <Login onLogin={(p) => { setProfile(p); setUser(p) }} />
+    return <Login onLogin={(p: any) => { setProfile(p); setUser(p) }} />
   }
 
-  const tabs: { id: string; label: string; icon: string }[] = [
+  const tabs = [
     { id: 'palpites', label: 'Palpites', icon: '🎯' },
     { id: 'especiais', label: 'Especiais', icon: '⭐' },
     { id: 'resultados', label: 'Resultados', icon: '📊' },
@@ -88,15 +83,8 @@ export default function Home() {
       <NavBar profile={profile} onLogout={() => { supabase.auth.signOut(); setUser(null); setProfile(null) }} />
       <nav className="flex gap-2 flex-wrap mb-4">
         {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              tab === t.id
-                ? 'bg-copa-green text-white'
-                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-copa-green'
-            }`}
-          >
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${tab === t.id ? 'bg-copa-green text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-copa-green'}`}>
             {t.icon} {t.label}
           </button>
         ))}
@@ -107,6 +95,6 @@ export default function Home() {
       {tab === 'ranking' && <Ranking currentUserId={user.id} />}
       {tab === 'stats' && <Stats userId={user.id} apelido={profile.apelido} />}
       {tab === 'admin' && profile?.is_admin && <Admin />}
-    </div> 
+    </div>
   )
-}
+} 
