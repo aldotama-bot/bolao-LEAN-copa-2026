@@ -37,7 +37,7 @@ export default function Home() {
     }
     init()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
       setUser(session?.user ?? null)
       if (session?.user) {
         const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
