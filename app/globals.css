@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --green: #1a9e3f;
+  --green-dark: #0f7a2e;
+}
+
+body {
+  @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+}
+
+.btn-primary {
+  @apply bg-copa-green text-white px-4 py-2 rounded-lg font-medium hover:bg-copa-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.card {
+  @apply bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4;
+}
+
+.input {
+  @apply w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-copa-green;
+}
