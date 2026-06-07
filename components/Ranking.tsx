@@ -9,10 +9,7 @@ export default function Ranking({ currentUserId }: { currentUserId: string }) {
 
   useEffect(() => {
     loadRanking()
-    const channel = supabase.channel('ranking-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ranking' }, loadRanking)
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    return () => {} 
   }, [])
 
   async function loadRanking() {
