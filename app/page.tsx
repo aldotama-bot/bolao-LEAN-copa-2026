@@ -20,7 +20,7 @@ export default function Home() {
     const supabase = createClient()
 
     // Timeout de segurança — nunca fica preso em "carregando"
-    const timeout = setTimeout(() => setLoading(false), 3000) 
+    const timeout = setTimeout(() => { setLoading(false); setUser(null); setProfile(null) }, 3000)
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
       clearTimeout(timeout)
