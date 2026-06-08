@@ -59,7 +59,7 @@ export default function Login({ onLogin }: { onLogin: (p: any) => void }) {
       <div className="card max-w-sm w-full">
         <div className="text-center mb-6">
           <div className="text-5xl mb-2">⚽</div>
-          <h1 className="text-xl font-medium">Bolão <span className="text-green-600 font-black">LEAN</span> da Copa 2026</h1>
+         <h1 className="text-xl font-medium">Bolão dos <span className="text-green-600 font-black">PIOR</span> do LEAN</h1>
           <p className="text-sm text-gray-500 mt-1">Entre para participar com seus amigos</p>
         </div>
 
