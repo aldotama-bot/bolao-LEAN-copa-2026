@@ -19,53 +19,27 @@ export default function Home() {
   useEffect(() => {
     const supabase = createClient()
 
-    // Timeout de segurança — nunca fica preso em "carregando"
-    const timeout = setTimeout(() => { setLoading(false); setUser(null); setProfile(null) }, 3000)
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
-      clearTimeout(timeout)
-      if (session?.user) {
-        setUser(session.user)
-        const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-        setProfile(data)
-      } else {
-        setUser(null)
-        setProfile(null)
-      }
-      setLoading(false)
-    })
-
-    // Também tenta pegar sessão diretamente
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        clearTimeout(timeout)
         setUser(session.user)
         const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
         setProfile(data)
-        setLoading(false)
       }
-    })
+      setLoading(false)
+    }).catch(() => setLoading(false))
 
-    return () => {
-      clearTimeout(timeout)
-      subscription.unsubscribe()
-    }
   }, [])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-5xl mb-4">⚽</div>
-          <p className="text-gray-500">Carregando o bolão...</p>
-        </div>
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="text-5xl mb-4">⚽</div>
+        <p className="text-gray-500">Carregando o bolão...</p>
       </div>
-    )
-  }
+    </div>
+  )
 
-  if (!user || !profile) {
-    return <Login onLogin={(p: any) => { setProfile(p); setUser(p) }} />
-  }
+  if (!user || !profile) return <Login onLogin={(p) => { setProfile(p); setUser(p) }} />
 
   const tabs = [
     { id: 'palpites', label: 'Palpites', icon: '🎯' },
@@ -97,4 +71,4 @@ export default function Home() {
       {tab === 'admin' && profile?.is_admin && <Admin />}
     </div>
   )
-} 
+}
