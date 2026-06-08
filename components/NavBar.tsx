@@ -5,7 +5,7 @@ export default function NavBar({ profile, onLogout }: { profile: any; onLogout: 
     <div className="bg-copa-green text-white rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
       <span className="text-3xl">⚽</span>
       <div className="flex-1">
-        <h1 className="font-medium text-base leading-tight">Bolão <span className="text-yellow-300 font-black">LEAN</span> da Copa 2026</h1>
+        <h1 className="font-medium text-base leading-tight">Bolão os <span className="text-yellow-300 font-black">PIOR</span> do LEAN 2026</h1> 
         <p className="text-xs opacity-80">Olá, {profile?.apelido} 👋</p>
       </div>
       {profile?.is_admin && (
