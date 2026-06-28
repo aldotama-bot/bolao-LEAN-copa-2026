@@ -2,6 +2,10 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
+```typescript
+import AdminKnockout from './AdminKnockout'
+```
+
 export default function Admin() {
   const [matches, setMatches] = useState<any[]>([])
   const [results, setResults] = useState<Record<number, { h: string; a: string }>>({})
