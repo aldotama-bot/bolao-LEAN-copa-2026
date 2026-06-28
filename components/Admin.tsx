@@ -2,57 +2,122 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
-```typescript
-import AdminKnockout from './AdminKnockout'
-```
-
-export default function Admin() {
+export default function AdminKnockout() {
   const [matches, setMatches] = useState<any[]>([])
-  const [results, setResults] = useState<Record<number, { h: string; a: string }>>({})
+  const [results, setResults] = useState<Record<number, { winner: string }>>({})
   const [toast, setToast] = useState('')
-  const [phase, setPhase] = useState('Fase de Grupos')
-  const [users, setUsers] = useState<any[]>([])
+  const [fase, setFase] = useState('16-avos')
   const supabase = createClient()
 
-  useEffect(() => { loadMatches(); loadUsers() }, [phase])
+  useEffect(() => { loadMatches() }, [fase])
 
   async function loadMatches() {
     const { data } = await supabase
-      .from('matches')
-      .select('*, home:teams!matches_home_team_id_fkey(nome,bandeira), away:teams!matches_away_team_id_fkey(nome,bandeira)')
-      .eq('fase', phase)
+      .from('knockout_matches')
+      .select('*')
+      .eq('fase', fase)
       .order('data_jogo')
     setMatches(data || [])
-  }
-
-  async function loadUsers() {
-    const { data } = await supabase.from('profiles').select('*').order('apelido')
-    setUsers(data || [])
+    setResults({})
   }
 
   async function saveResult(m: any) {
-    const r = results[m.id]
-    if (!r || r.h === '' || r.a === '') { showToast('Preencha o placar!'); return }
-    const { error } = await supabase.from('matches').update({
-      home_score: parseInt(r.h),
-      away_score: parseInt(r.a),
-      encerrado: true
-    }).eq('id', m.id)
-    if (error) showToast('Erro: ' + error.message)
-    else { showToast('✅ Resultado salvo e pontos calculados!'); loadMatches() }
+    const winner = results[m.id]?.winner
+    if (!winner || winner === '') { 
+      showToast('Selecione o vencedor!'); 
+      return 
+    }
+
+    // Atualizar match como encerrado
+    const { error: updateError } = await supabase
+      .from('knockout_matches')
+      .update({
+        encerrado: true,
+        time1: m.time1 === winner ? m.time1 : m.time2,
+        time2: m.time1 === winner ? m.time2 : m.time1
+      })
+      .eq('id', m.id)
+
+    if (updateError) {
+      showToast('Erro: ' + updateError.message)
+      return
+    }
+
+    // Buscar todos os palpites para esse jogo
+    const { data: predictions } = await supabase
+      .from('knockout_predictions')
+      .select('user_id, predicted_winner')
+      .eq('knockout_match_id', m.id)
+
+    // Atualizar pontos dos palpites
+    if (predictions) {
+      for (const pred of predictions) {
+        const points = pred.predicted_winner === winner ? 10 : 0
+        await supabase
+          .from('knockout_predictions')
+          .update({ points })
+          .eq('knockout_match_id', m.id)
+          .eq('user_id', pred.user_id)
+      }
+    }
+
+    // Recalcular ranking do mata-mata
+    await recalculateKnockoutRanking()
+    
+    showToast('✅ Resultado salvo e ranking atualizado!')
+    loadMatches()
   }
 
-  async function toggleAdmin(uid: string, current: boolean) {
-    await supabase.from('profiles').update({ is_admin: !current }).eq('id', uid)
-    loadUsers()
+  async function recalculateKnockoutRanking() {
+    // Limpar ranking anterior
+    await supabase
+      .from('knockout_ranking')
+      .delete()
+      .neq('user_id', '')
+
+    // Buscar todos os usuários
+    const { data: users } = await supabase
+      .from('profiles')
+      .select('id, apelido')
+
+    if (!users) return
+
+    // Para cada usuário, calcular pontos do mata-mata
+    for (const user of users) {
+      const { data: userPreds } = await supabase
+        .from('knockout_predictions')
+        .select('points')
+        .eq('user_id', user.id)
+        .eq('points', 10) // Apenas acertos
+
+      const { data: allPreds } = await supabase
+        .from('knockout_predictions')
+        .select('id')
+        .eq('user_id', user.id)
+
+      const totalPts = userPreds?.reduce((sum, p) => sum + (p.points || 0), 0) || 0
+      const correctPreds = userPreds?.length || 0
+      const totalPreds = allPreds?.length || 0
+
+      await supabase
+        .from('knockout_ranking')
+        .upsert({
+          user_id: user.id,
+          total_pts: totalPts,
+          correct_predictions: correctPreds,
+          total_predictions: totalPreds
+        }, { onConflict: 'user_id' })
+    }
   }
 
   function showToast(msg: string) {
-    setToast(msg); setTimeout(() => setToast(''), 3000)
+    setToast(msg)
+    setTimeout(() => setToast(''), 3000)
   }
 
- const PHASES = ['Fase de Grupos', '16-avos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lugar', 'Final']
-const KNOCKOUT_PHASES = ['16-avos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lugar', 'Final']
+  const FASES = ['16-avos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lugar', 'Final']
+  const pendingMatches = matches.filter(m => !m.encerrado)
+  const completedMatches = matches.filter(m => m.encerrado)
 
   return (
     <div>
@@ -63,89 +128,85 @@ const KNOCKOUT_PHASES = ['16-avos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lug
       )}
 
       <div className="card mb-4 border-amber-300 dark:border-amber-700">
-        <h2 className="font-medium mb-1">⚙️ Painel Administrativo</h2>
-        <p className="text-xs text-amber-600 dark:text-amber-400 mb-4">Insira os resultados oficiais aqui. Os pontos são calculados automaticamente.</p>
+        <h2 className="font-medium mb-1">⚙️ Mata-Mata - Resultados</h2>
+        <p className="text-xs text-amber-600 dark:text-amber-400 mb-4">Insira os vencedores dos jogos do mata-mata. Os pontos são calculados automaticamente.</p>
 
-<div className="flex gap-2 flex-wrap mb-4 overflow-x-auto">
-  {PHASES.map(p => (
-    <button key={p} onClick={() => setPhase(p)}
-      className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${phase === p ? 'bg-amber-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-      {p}
-    </button>
-  ))}
-</div>
-
-{/* ABAS PARA MATA-MATA */}
-{KNOCKOUT_PHASES.includes(phase) && (
-  <div className="flex gap-2 flex-wrap mb-4 overflow-x-auto">
-    {KNOCKOUT_PHASES.map(p => (
-      <button key={p} onClick={() => setPhase(p)}
-        className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${phase === p ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-        {p}
-      </button>
-    ))}
-  </div>
-)}
-
-        {matches.filter(m => !m.encerrado).map(m => (
-          <div key={m.id} className="flex items-center gap-2 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
-            <div className="flex-1 text-sm">
-              <span>{m.home?.bandeira || ''} {m.home?.nome || m.home_label}</span>
-              <span className="text-gray-400 mx-1">×</span>
-              <span>{m.away?.nome || m.away_label} {m.away?.bandeira || ''}</span>
-            </div>
-            <input
-              type="number" min="0" max="20" placeholder="C"
-              value={results[m.id]?.h ?? ''}
-              onChange={e => setResults(p => ({ ...p, [m.id]: { ...p[m.id], h: e.target.value } }))}
-              className="w-12 h-9 text-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-            />
-            <span className="text-gray-400">×</span>
-            <input
-              type="number" min="0" max="20" placeholder="V"
-              value={results[m.id]?.a ?? ''}
-              onChange={e => setResults(p => ({ ...p, [m.id]: { ...p[m.id], a: e.target.value } }))}
-              className="w-12 h-9 text-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-            />
-            <button
-              onClick={() => saveResult(m)}
-              className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-medium hover:bg-amber-600 transition-colors"
+        {/* Abas de fases */}
+        <div className="flex gap-2 flex-wrap mb-4 overflow-x-auto">
+          {FASES.map(f => (
+            <button 
+              key={f} 
+              onClick={() => setFase(f)}
+              className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                fase === f 
+                  ? 'bg-amber-500 text-white' 
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+              }`}
             >
-              Salvar
+              {f}
             </button>
-          </div>
-        ))}
+          ))}
+        </div>
 
-        {matches.filter(m => m.encerrado).length > 0 && (
-          <div className="mt-3">
-            <p className="text-xs text-gray-400 mb-2">Encerradas:</p>
-            {matches.filter(m => m.encerrado).map(m => (
-              <div key={m.id} className="flex items-center gap-2 text-sm py-1 text-gray-400">
-                <span className="text-green-600">✓</span>
-                <span className="flex-1">{m.home?.nome || m.home_label} {m.home_score}×{m.away_score} {m.away?.nome || m.away_label}</span>
-              </div>
-            ))}
+        {/* Jogos pendentes */}
+        {pendingMatches.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Pendentes:</h3>
+            <div className="space-y-3 mb-4">
+              {pendingMatches.map(m => (
+                <div key={m.id} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="flex-1 text-sm font-medium">
+                    <div>{m.time1} × {m.time2}</div>
+                    <div className="text-xs text-gray-400">
+                      {new Date(m.data_jogo).toLocaleDateString('pt-BR')} · {m.hora_jogo?.substring(0, 5)}
+                    </div>
+                  </div>
+                  
+                  <select
+                    value={results[m.id]?.winner || ''}
+                    onChange={(e) => setResults(prev => ({
+                      ...prev,
+                      [m.id]: { winner: e.target.value }
+                    }))}
+                    className="text-xs px-2 py-1 border rounded bg-white dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Vencedor?</option>
+                    <option value={m.time1}>{m.time1}</option>
+                    <option value={m.time2}>{m.time2}</option>
+                  </select>
+
+                  <button
+                    onClick={() => saveResult(m)}
+                    className="px-3 py-1 text-xs bg-amber-500 text-white rounded font-medium hover:bg-amber-600 transition-colors"
+                  >
+                    Salvar
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
-      </div>
 
-      <div className="card">
-        <h2 className="font-medium mb-3">👥 Usuários ({users.length})</h2>
-        {users.map(u => (
-          <div key={u.id} className="flex items-center gap-2 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
-            <div className="w-8 h-8 rounded-full bg-copa-green text-white text-sm font-medium flex items-center justify-center">
-              {u.apelido[0].toUpperCase()}
+        {/* Jogos completados */}
+        {completedMatches.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Encerrados:</h3>
+            <div className="space-y-1">
+              {completedMatches.map(m => (
+                <div key={m.id} className="text-sm p-2 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-700 dark:text-green-300">
+                  ✓ {m.time1} × {m.time2}
+                </div>
+              ))}
             </div>
-            <span className="flex-1 text-sm font-medium">{u.apelido}</span>
-            {u.is_admin && <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">admin</span>}
-            <button
-              onClick={() => toggleAdmin(u.id, u.is_admin)}
-              className="text-xs text-gray-400 hover:text-copa-green transition-colors"
-            >
-              {u.is_admin ? 'Remover admin' : 'Tornar admin'}
-            </button>
           </div>
-        ))}
+        )}
+
+        {matches.length === 0 && (
+          <div className="text-center py-6 text-gray-400">
+            <div className="text-3xl mb-2">⚽</div>
+            <p className="text-sm">Nenhum jogo nesta fase.</p>
+          </div>
+        )}
       </div>
     </div>
   )
