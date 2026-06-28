@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
+import AdminKnockout from './AdminKnockout'
 
 export default function AdminKnockout() {
   const [matches, setMatches] = useState<any[]>([])
