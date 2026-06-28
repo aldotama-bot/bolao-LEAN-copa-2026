@@ -1,8 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
+import PalpitesKnockout from './PalpitesKnockout'
 
-const PHASES = ['Fase de Grupos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lugar', 'Final']
+const PHASES = ['Fase de Grupos', '16-avos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lugar', 'Final']
 
 function ptsBadge(pts: number) {
   const colors: Record<number, string> = {
@@ -94,6 +95,10 @@ export default function Palpites({ userId }: { userId: string }) {
         ))}
       </div>
 
+      {phase === '16-avos' ? (
+        <PalpitesKnockout userId={userId} />
+      ) : (
+        <>
       {!matches.length && (
         <div className="card text-center py-8 text-gray-400">
           <div className="text-4xl mb-2">📅</div>
@@ -182,6 +187,8 @@ export default function Palpites({ userId }: { userId: string }) {
           })}
         </div>
       ))}
+      </>
+      )}
     </div>
   )
 }
