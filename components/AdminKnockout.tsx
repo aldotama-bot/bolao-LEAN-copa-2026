@@ -28,7 +28,6 @@ export default function AdminKnockout() {
       return 
     }
 
-    // Atualizar match como encerrado
     const { error: updateError } = await supabase
       .from('knockout_matches')
       .update({
@@ -43,13 +42,11 @@ export default function AdminKnockout() {
       return
     }
 
-    // Buscar todos os palpites para esse jogo
     const { data: predictions } = await supabase
       .from('knockout_predictions')
       .select('user_id, predicted_winner')
       .eq('knockout_match_id', m.id)
 
-    // Atualizar pontos dos palpites
     if (predictions) {
       for (const pred of predictions) {
         const points = pred.predicted_winner === winner ? 10 : 0
@@ -61,7 +58,6 @@ export default function AdminKnockout() {
       }
     }
 
-    // Recalcular ranking do mata-mata
     await recalculateKnockoutRanking()
     
     showToast('✅ Resultado salvo e ranking atualizado!')
@@ -69,26 +65,23 @@ export default function AdminKnockout() {
   }
 
   async function recalculateKnockoutRanking() {
-    // Limpar ranking anterior
     await supabase
       .from('knockout_ranking')
       .delete()
       .neq('user_id', '')
 
-    // Buscar todos os usuários
     const { data: users } = await supabase
       .from('profiles')
       .select('id, apelido')
 
     if (!users) return
 
-    // Para cada usuário, calcular pontos do mata-mata
     for (const user of users) {
       const { data: userPreds } = await supabase
         .from('knockout_predictions')
         .select('points')
         .eq('user_id', user.id)
-        .eq('points', 10) // Apenas acertos
+        .eq('points', 10)
 
       const { data: allPreds } = await supabase
         .from('knockout_predictions')
@@ -127,11 +120,7 @@ export default function AdminKnockout() {
         </div>
       )}
 
-      <div className="card mb-4 border-amber-300 dark:border-amber-700">
-        <h2 className="font-medium mb-1">⚙️ Mata-Mata - Resultados</h2>
-        <p className="text-xs text-amber-600 dark:text-amber-400 mb-4">Insira os vencedores dos jogos do mata-mata. Os pontos são calculados automaticamente.</p>
-
-        {/* Abas de fases */}
+      <div>
         <div className="flex gap-2 flex-wrap mb-4 overflow-x-auto">
           {FASES.map(f => (
             <button 
@@ -148,7 +137,6 @@ export default function AdminKnockout() {
           ))}
         </div>
 
-        {/* Jogos pendentes */}
         {pendingMatches.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Pendentes:</h3>
@@ -187,7 +175,6 @@ export default function AdminKnockout() {
           </div>
         )}
 
-        {/* Jogos completados */}
         {completedMatches.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Encerrados:</h3>
