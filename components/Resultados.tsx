@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
-const PHASES = ['Fase de Grupos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lugar', 'Final']
+const PHASES = ['Fase de Grupos', '16-avos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lugar', 'Final']
 
 function ptsBadge(pts: number) {
   const map: Record<number, string> = { 5: 'bg-green-100 text-green-800', 3: 'bg-blue-100 text-blue-800', 2: 'bg-amber-100 text-amber-800', 0: 'bg-red-100 text-red-800' }
