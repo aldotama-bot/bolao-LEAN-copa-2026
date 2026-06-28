@@ -6,16 +6,16 @@ export default function AdminKnockout() {
   const [matches, setMatches] = useState<any[]>([])
   const [results, setResults] = useState<Record<number, { winner: string }>>({})
   const [toast, setToast] = useState('')
-  const [fase, setFase] = useState('16-avos')
+  const [phase, setPhase] = useState('16-avos')
   const supabase = createClient()
 
-  useEffect(() => { loadMatches() }, [fase])
+  useEffect(() => { loadMatches() }, [phase])
 
   async function loadMatches() {
     const { data } = await supabase
       .from('knockout_matches')
       .select('*')
-      .eq('fase', fase)
+      .eq('fase', phase)
       .order('data_jogo')
     setMatches(data || [])
     setResults({})
@@ -108,7 +108,7 @@ export default function AdminKnockout() {
     setTimeout(() => setToast(''), 3000)
   }
 
-  const FASES = ['16-avos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lugar', 'Final']
+  const PHASES = ['16-avos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lugar', 'Final']
   const pendingMatches = matches.filter(m => !m.encerrado)
   const completedMatches = matches.filter(m => m.encerrado)
 
@@ -122,12 +122,12 @@ export default function AdminKnockout() {
 
       <div>
         <div className="flex gap-2 flex-wrap mb-4 overflow-x-auto">
-          {FASES.map(f => (
+          {PHASES.map(f => (
             <button 
               key={f} 
-              onClick={() => setFase(f)}
+              onClick={() => setPhase(f)}
               className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                fase === f 
+                phase === f 
                   ? 'bg-amber-500 text-white' 
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
               }`}
