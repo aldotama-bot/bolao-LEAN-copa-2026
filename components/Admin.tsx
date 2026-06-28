@@ -51,7 +51,8 @@ export default function Admin() {
     setToast(msg); setTimeout(() => setToast(''), 3000)
   }
 
-  const PHASES = ['Fase de Grupos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lugar', 'Final']
+ const PHASES = ['Fase de Grupos', '16-avos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lugar', 'Final']
+const KNOCKOUT_PHASES = ['16-avos', 'Oitavas', 'Quartas', 'Semifinais', '3º Lugar', 'Final']
 
   return (
     <div>
@@ -65,14 +66,26 @@ export default function Admin() {
         <h2 className="font-medium mb-1">⚙️ Painel Administrativo</h2>
         <p className="text-xs text-amber-600 dark:text-amber-400 mb-4">Insira os resultados oficiais aqui. Os pontos são calculados automaticamente.</p>
 
-        <div className="flex gap-2 flex-wrap mb-4">
-          {PHASES.map(p => (
-            <button key={p} onClick={() => setPhase(p)}
-              className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${phase === p ? 'bg-amber-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-              {p}
-            </button>
-          ))}
-        </div>
+<div className="flex gap-2 flex-wrap mb-4 overflow-x-auto">
+  {PHASES.map(p => (
+    <button key={p} onClick={() => setPhase(p)}
+      className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${phase === p ? 'bg-amber-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+      {p}
+    </button>
+  ))}
+</div>
+
+{/* ABAS PARA MATA-MATA */}
+{KNOCKOUT_PHASES.includes(phase) && (
+  <div className="flex gap-2 flex-wrap mb-4 overflow-x-auto">
+    {KNOCKOUT_PHASES.map(p => (
+      <button key={p} onClick={() => setPhase(p)}
+        className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${phase === p ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+        {p}
+      </button>
+    ))}
+  </div>
+)}
 
         {matches.filter(m => !m.encerrado).map(m => (
           <div key={m.id} className="flex items-center gap-2 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
